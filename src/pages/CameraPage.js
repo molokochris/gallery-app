@@ -12,7 +12,7 @@ import {
   ImageBackground,
   Alert,
 } from "react-native";
-import { Camera } from "expo-camera";
+import { Camera, CameraType } from "expo-camera";
 import * as Location from "expo-location";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
@@ -22,15 +22,17 @@ import { Icon } from "@rneui/themed";
 import axios from "axios";
 
 function CameraScreen() {
-  const [photo, setPhoto] = useState([]);
+  // const [imageUri, setImageUri] = useState(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const [hasMediaLibraryPermission, setHasMediaLibraryPermission] =
     useState(false);
   const [location, setLocation] = useState();
+  const [type, setType] = useState(CameraType.back);
 
+  const navigation = useNavigation();
   let cameraRef = useRef("");
 
-  const navigator = useNavigation();
+  // const navigator = useNavigation();
 
   // Connecting to the SQLite database or opening database
   const db = SQLite.openDatabase("photocollection.db");
@@ -57,7 +59,7 @@ function CameraScreen() {
     })();
 
     createImageTable();
-    setPhoto("");
+    // setPhoto("");
   }, []);
 
   // Handles creating the table in SQLite
@@ -91,96 +93,66 @@ function CameraScreen() {
         );
         // You can use location.coords.latitude and location.coords.longitude here.
       }
-
-      setPhoto(newPhoto);
+      newPhoto.location = location;
+      // setPhoto(newPhoto);
+      savePhoto(newPhoto);
+      // console.log("image taken:", newPhoto.location);
     } catch (err) {
       console.log(err);
     }
   };
 
-  const closeCamera = () => {
-    navigator.navigate("Welcome");
+  // if (photo) {
+  //   const sharePic = () => {
+  //     Sharing(photo.uri).then(() => {
+  //       setPhoto("");
+  //     });
+  //   };
+  let imageUri = null;
+  const savePhoto = async (photo) => {
+    try {
+      const imageUrl = `${photo.uri}`;
+
+      if (photo.location) {
+        const { latitude, longitude } = location.coords;
+
+        console.log(
+          "User Location:",
+          location.coords.latitude,
+          location.coords.longitude
+        );
+
+        db.transaction((tx) => {
+          tx.executeSql(
+            // 'INSERT INTO images (image_data, image_url) VALUES (?, ?)',
+            "INSERT INTO photocollection (image_url) VALUES (?)",
+
+            // [photo.base64, imageUrl, latitude, longitude],
+            [imageUrl],
+            (_, results) => {
+              if (results.rowsAffected > 0) {
+                console.warn("Image saved successfully.");
+              } else {
+                console.warn("Image not saved.");
+              }
+            }
+          );
+        });
+        // setImageUri(newPhoto);
+        imageUri = imageUrl;
+        console.log("image URI : ", imageUrl);
+      }
+    } catch (err) {
+      console.log(err);
+    }
   };
 
-  if (photo) {
-    const sharePic = () => {
-      Sharing(photo.uri).then(() => {
-        setPhoto("");
-      });
-    };
-
-    const savePhoto = async () => {
-      try {
-        const imageUrl = `${photo.uri}`;
-
-        if (location) {
-          const { latitude, longitude } = location.coords;
-
-          console.log(
-            "User Location:",
-            location.coords.latitude,
-            location.coords.longitude
-          );
-
-          db.transaction((tx) => {
-            tx.executeSql(
-              // 'INSERT INTO images (image_data, image_url) VALUES (?, ?)',
-              "INSERT INTO photocollection (image_url) VALUES (?)",
-
-              // [photo.base64, imageUrl, latitude, longitude],
-              [imageUrl],
-              (_, results) => {
-                if (results.rowsAffected > 0) {
-                  console.warn("Image saved successfully.");
-                } else {
-                  console.warn("Image not saved.");
-                }
-              }
-            );
-          });
-          setPhoto("");
-        }
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    return (
-      <SafeAreaView>
-        <View style={styles.previewContainer}>
-          <View style={styles.imageContainer}>
-            <Image style={styles.preview} source={photo} />
-          </View>
-          <View style={styles.optionsBtnContainer}>
-            <Pressable
-              title="Share"
-              style={styles.optionsBtn}
-              onPress={sharePic}
-            >
-              <Text>Share</Text>
-            </Pressable>
-            <Pressable
-              title="Save"
-              style={styles.optionsBtn}
-              onPress={savePhoto}
-            >
-              <Text>Save</Text>
-            </Pressable>
-            <Pressable
-              title="Discard"
-              style={styles.optionsBtn}
-              onPress={() => setPhoto("")}
-            >
-              <Text>Discard</Text>
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   if (hasCameraPermission === null || hasMediaLibraryPermission === null) {
-    return <Text>Requesting permissions...</Text>;
+    return (
+      <Text style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        Requesting permissions...
+      </Text>
+    );
   } else if (!hasCameraPermission) {
     return (
       <Text>
@@ -192,12 +164,19 @@ function CameraScreen() {
   const closeApp = () => {
     Alert.alert("Leaving? 😔", "Are you Sure You Want To Leave The App!!?", [
       {
-        text: "Stay",
+        text: "Staying",
         onPress: () => console.log("Cancel Pressed"),
         style: "cancel",
       },
-      { text: "Yes", onPress: () => BackHandler.exitApp() },
+      { text: "Leaving", onPress: () => BackHandler.exitApp() },
     ]);
+  };
+
+  const flipCamera = () => {
+    setType((current) =>
+      current === CameraType.back ? CameraType.front : CameraType.back
+    );
+    console.log("Camera Set", type);
   };
 
   return (
@@ -228,28 +207,29 @@ function CameraScreen() {
             flex: 1,
             flexDirection: "row",
             alignItems: "flex-end",
+            // backgroundColor: "red",
             // justifyContent: "center",
             marginBottom: 20,
           }}
         >
-          <ImageBackground
-            source={{}}
-            style={{
-              // backgroundColor: "grey",
-              borderWidth: 1,
-              borderColor: "whitesmoke",
-              marginTop: 5,
-              marginLeft: 15,
-              width: 55,
-              height: 55,
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 10,
-              borderRadius: 100,
-            }}
-          >
-            {/* <Text>Gallery</Text> */}
-          </ImageBackground>
+          <Pressable onPress={() => navigation.navigate("Gallery")}>
+            <ImageBackground
+              source={imageUri === null ? {} : { uri: imageUri }}
+              style={{
+                // backgroundColor: "grey",
+                borderWidth: 1,
+                borderColor: "whitesmoke",
+                marginTop: 5,
+                marginLeft: 15,
+                width: 55,
+                height: 55,
+                justifyContent: "center",
+                alignItems: "center",
+                padding: 10,
+                borderRadius: 100,
+              }}
+            ></ImageBackground>
+          </Pressable>
           <TouchableOpacity
             style={{
               backgroundColor: "whitesmoke",
@@ -263,9 +243,32 @@ function CameraScreen() {
               padding: 10,
               borderRadius: 100,
             }}
+            onPress={takePic}
           >
             {/* <Text>Take</Text> */}
             <Icon name="camera" color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              // backgroundColor: "whitesmoke",
+              marginTop: 5,
+              marginLeft: "22%",
+              width: 65,
+              height: 65,
+              // alignSelf: "flex-start",
+              justifyContent: "center",
+              alignItems: "baseline",
+              padding: 10,
+              borderRadius: 100,
+            }}
+            onPress={flipCamera}
+          >
+            {/* <Text>Take</Text> */}
+            <Icon
+              type="material-community"
+              name="camera-flip"
+              color="whitesmoke"
+            />
           </TouchableOpacity>
         </View>
       </View>
