@@ -57,7 +57,7 @@ function CameraScreen() {
         setLocation(userLocation);
       }
     })();
-
+    console.log(hasMediaLibraryPermission);
     createImageTable();
     // setPhoto("");
   }, []);
@@ -101,13 +101,6 @@ function CameraScreen() {
       console.log(err);
     }
   };
-
-  // if (photo) {
-  //   const sharePic = () => {
-  //     Sharing(photo.uri).then(() => {
-  //       setPhoto("");
-  //     });
-  //   };
   let imageUri = null;
   const savePhoto = async (photo) => {
     try {
@@ -180,7 +173,7 @@ function CameraScreen() {
   };
 
   return (
-    <Camera style={styles.container} ref={cameraRef}>
+    <Camera style={styles.container} ref={cameraRef} type={type}>
       <View style={{ flex: 1 }}>
         {/* <View>
 

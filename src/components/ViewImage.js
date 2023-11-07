@@ -16,6 +16,7 @@ function ViewImage() {
   const [imagesCollection, setImagesCollection] = useState([]); // For storing the databse info
   const [selectedImage, setSelectedImage] = useState(null); // For displaying the selected image
   const [selectedImageInfo, setSelectedImageInfo] = useState(null); // For displaying image info
+  const [selectedImageLocation, setSelectedImageLocation] = useState(null); // For displaying image Location
   const [modalVisible, setModalVisible] = useState(false); // For modal functionality
 
   // Connecting to the database
@@ -60,9 +61,9 @@ function ViewImage() {
     });
   };
 
-  const openImageModal = (imageUrl) => {
-    setSelectedImage(imageUrl);
-    setSelectedImageInfo();
+  const openImageModal = (image) => {
+    setSelectedImage(image.uri);
+    setSelectedImageLocation(image.location);
     setModalVisible(true);
   };
 
@@ -83,23 +84,60 @@ function ViewImage() {
     <View style={styles.container}>
       {imagesCollection.length === 0 ? (
         <View
+          //   key={index}
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            paddingHorizontal: 5,
+            // justifyContent: "center",
+            //    alignItems: "center"
           }}
         >
-          <Text>No Snaps Found!</Text>
+          <TouchableOpacity>
+            <View style={styles.image}>
+              <Icon
+                name="broken-image"
+                type="materialIcons"
+                color="whitesmoke"
+              />
+              <Text>No Images Found!</Text>
+            </View>
+          </TouchableOpacity>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 40,
+              //   marginTop: -5,
+            }}
+          >
+            <TouchableOpacity>
+              <Icon
+                name="delete"
+                // style={styles.iconDelete}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Icon
+                name="info"
+                // style={styles.iconInfo}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <ScrollView>
           {imagesCollection.map((item, index) => (
             <View
               key={index}
-              style={{ justifyContent: "center", alignContent: "center" }}
+              style={{
+                paddingHorizontal: 5,
+                // justifyContent: "center",
+                //    alignItems: "center"
+              }}
             >
               <TouchableOpacity
-                onPress={() => openImageModal(item.image_url)} // Open image when clicked
+                // onPress={() => openImageModal(item.image_url)} // Open image when clicked
+                onPress={() => openImageModal(item)} // Open image when clicked
               >
                 <Image source={{ uri: item.image_url }} style={styles.image} />
               </TouchableOpacity>
@@ -107,8 +145,9 @@ function ViewImage() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "space-around",
-                  marginTop: -5,
+                  justifyContent: "space-between",
+                  paddingHorizontal: 40,
+                  //   marginTop: -5,
                 }}
               >
                 <TouchableOpacity onPress={() => deleteSelectedImages(item.id)}>
@@ -129,7 +168,7 @@ function ViewImage() {
         </ScrollView>
       )}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={false}
         visible={modalVisible}
         onRequestClose={closeImageModal}
@@ -170,6 +209,7 @@ function ViewImage() {
               <Text>Name: {selectedImageInfo.name}</Text>
               <Text>Description: {selectedImageInfo.description}</Text>
               <Text>Date: {selectedImageInfo.date}</Text>
+              <Text>Location: {selectedImageLocation.location}</Text>
             </View>
           )}
           <TouchableOpacity onPress={closeImageInfo}>
@@ -186,9 +226,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   image: {
-    width: 350,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "grey",
+    width: "100%",
     height: 340,
-    margin: 10,
+    marginVertical: 5,
+    // padding: 10,
+    borderRadius: 8,
   },
   selectButton: {
     padding: 10,
