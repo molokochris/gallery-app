@@ -20,9 +20,11 @@ import * as SQLite from "expo-sqlite";
 import { useNavigation } from "@react-navigation/native";
 import { Icon } from "@rneui/themed";
 import axios from "axios";
+import { ActivityIndicator } from "react-native";
 
 function CameraScreen() {
   // const [imageUri, setImageUri] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const [hasMediaLibraryPermission, setHasMediaLibraryPermission] =
     useState(false);
@@ -39,28 +41,55 @@ function CameraScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status: cameraPermission } =
-        await Camera.requestCameraPermissionsAsync();
-      const { status: mediaLibraryPermission } =
-        await MediaLibrary.requestPermissionsAsync();
+      hasMediaAccess();
 
+      hasCameraAccess();
       // Request location permissions here:
-      const { status: locationPermission } =
-        await Location.requestForegroundPermissionsAsync();
-
-      setHasCameraPermission(cameraPermission === "granted");
-      setHasMediaLibraryPermission(mediaLibraryPermission === "granted");
-
-      // Check if location permission is granted:
-      if (locationPermission === "granted") {
-        const userLocation = await Location.getCurrentPositionAsync({});
-        setLocation(userLocation);
+      hasLocation();
+      if (!hasCameraAccess || !hasMediaAccess || !hasLocation) {
+        Alert.alert(
+          "Some permission were not granted, so camera won't work properly."
+        );
       }
     })();
-    console.log(hasMediaLibraryPermission);
     createImageTable();
-    // setPhoto("");
   }, []);
+
+  const hasMediaAccess = async () => {
+    const { status: mediaLibraryPermission } =
+      await MediaLibrary.requestPermissionsAsync();
+    if (mediaLibraryPermission === "granted") {
+      console.log("media Access: ", mediaLibraryPermission === "granted");
+      setHasMediaLibraryPermission(mediaLibraryPermission === "granted");
+      return true;
+    }
+    return false;
+  };
+
+  const hasCameraAccess = async () => {
+    const { status: cameraPermission } =
+      await Camera.requestCameraPermissionsAsync();
+
+    if (cameraPermission === "granted") {
+      console.log("camera status: ", cameraPermission === "granted");
+      setHasCameraPermission(cameraPermission === "granted");
+      return true;
+    }
+    return false;
+  };
+
+  const hasLocation = async () => {
+    const { status: locationPermission } =
+      await Location.requestForegroundPermissionsAsync();
+    // Check if location permission is granted:
+    if (locationPermission === "granted") {
+      const userLocation = await Location.getCurrentPositionAsync({});
+      setLocation(userLocation);
+      console.log("userLocation: ", userLocation);
+      return true;
+    }
+    return false;
+  };
 
   // Handles creating the table in SQLite
   const createImageTable = () => {
@@ -82,6 +111,7 @@ function CameraScreen() {
       exif: false,
     };
 
+    setIsLoading(true);
     try {
       let newPhoto = await cameraRef.current.takePictureAsync(options);
 
@@ -99,6 +129,8 @@ function CameraScreen() {
       // console.log("image taken:", newPhoto.location);
     } catch (err) {
       console.log(err);
+    } finally {
+      setIsLoading(false);
     }
   };
   let imageUri = null;
@@ -111,17 +143,16 @@ function CameraScreen() {
 
         console.log(
           "User Location:",
-          location.coords.latitude,
-          location.coords.longitude
+          // location.coords.latitude,
+          latitude,
+          longitude
+          // location.coords.longitude
         );
 
         db.transaction((tx) => {
           tx.executeSql(
-            // 'INSERT INTO images (image_data, image_url) VALUES (?, ?)',
-            "INSERT INTO photocollection (image_url) VALUES (?)",
-
-            // [photo.base64, imageUrl, latitude, longitude],
-            [imageUrl],
+            "INSERT INTO photocollection (image_data, image_url, latitude, longitude) VALUES (?, ?, ?, ?)",
+            [photo.base64, imageUrl, latitude, longitude],
             (_, results) => {
               if (results.rowsAffected > 0) {
                 console.warn("Image saved successfully.");
@@ -236,10 +267,14 @@ function CameraScreen() {
               padding: 10,
               borderRadius: 100,
             }}
+            disabled={isLoading == true}
             onPress={takePic}
           >
-            {/* <Text>Take</Text> */}
-            <Icon name="camera" color="black" />
+            {isLoading ? (
+              <ActivityIndicator size={"small"} color={"black"} />
+            ) : (
+              <Icon name="camera" color="black" />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={{

@@ -33,7 +33,7 @@ function ViewImage() {
         tx.executeSql("SELECT * FROM photocollection", [], (_, results) => {
           const images = results.rows._array;
           setImagesCollection(images);
-          //   console.log("Image info", images);
+          // console.log("Image info", images);
         });
       });
     } catch (err) {
@@ -64,7 +64,7 @@ function ViewImage() {
   const openImageModal = (image) => {
     setSelectedImage(image.uri);
     setSelectedImageLocation(image.location);
-    setModalVisible(true);
+    // setModalVisible(true);
   };
 
   const closeImageModal = () => {
@@ -72,8 +72,9 @@ function ViewImage() {
     setModalVisible(false);
   };
 
-  const openImageInfo = (id) => {
-    setSelectedImageInfo(id);
+  const openImageInfo = (item) => {
+    console.log("ifo: ", item);
+    setSelectedImageInfo(item);
   };
 
   const closeImageInfo = () => {
@@ -156,7 +157,7 @@ function ViewImage() {
                     // style={styles.iconDelete}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => openImageInfo(item.id)}>
+                <TouchableOpacity onPress={() => openImageInfo(item)}>
                   <Icon
                     name="info"
                     // style={styles.iconInfo}
@@ -207,9 +208,9 @@ function ViewImage() {
           {selectedImageInfo && (
             <View style={{ padding: 20 }}>
               <Text>Name: {selectedImageInfo.name}</Text>
-              <Text>Description: {selectedImageInfo.description}</Text>
+              {/* <Text>Description: {selectedImageInfo.description}</Text> */}
               <Text>Date: {selectedImageInfo.date}</Text>
-              <Text>Location: {selectedImageLocation.location}</Text>
+              {/* <Text>Location: {selectedImageLocation.location}</Text> */}
             </View>
           )}
           <TouchableOpacity onPress={closeImageInfo}>
